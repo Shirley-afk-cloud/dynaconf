@@ -4,6 +4,8 @@ try:
 except ImportError as e:  # pragma: no cover
     yaml = None
 
+from dotenv import find_dotenv
+
 IDENTIFIER = 'yaml_loader'
 
 
@@ -17,13 +19,14 @@ def load(obj, namespace=None, silent=True, key=None, filename=None):
     :return: None
     """
     if yaml is None:  # pragma: no cover
-        raise RuntimeError(
+        obj.logger.warning(
             "PyYAML package is not installed in your environment.\n"
             "To use this loader you have to install it with\n"
             "pip install PyYAML\n"
             "or\n"
             "pip install dynaconf[yaml]"
         )
+        return
 
     filename = filename or obj.get('YAML')
     if not filename:
@@ -48,12 +51,21 @@ def load(obj, namespace=None, silent=True, key=None, filename=None):
 
     for yaml_file in files:
         if yaml_file.endswith(('.yaml', '.yml')):  # pragma: no cover
-            yaml_data = yaml.load(open(yaml_file))
+            try:
+                yaml_data = yaml.load(
+                    open(find_dotenv(yaml_file, usecwd=True))
+                )
+            except IOError as e:
+                obj.logger.warning(
+                    "Unable to load YAML file {}".format(str(e)))
+                yaml_data = None
+            else:
+                obj.logger.debug('YAML {} has been loaded'.format(yaml_file))
         else:
             # for tests it is possible to pass YAML string
             yaml_data = yaml.load(yaml_file)
 
-        if not yaml_data and silent:
+        if not yaml_data:
             continue
 
         yaml_data = {key.lower(): value for key, value in yaml_data.items()}
@@ -64,12 +76,11 @@ def load(obj, namespace=None, silent=True, key=None, filename=None):
         data = {}
         try:
             data = yaml_data[namespace.lower()]
-        except KeyError as e:
+        except KeyError:
             if silent:
-                if hasattr(obj, 'logger'):
-                    obj.logger.debug(
-                        '%s namespace not defined in yaml source' % namespace
-                    )
+                obj.logger.debug(
+                    '%s namespace not defined in yaml source' % namespace
+                )
             else:
                 raise KeyError(
                     '%s namespace not defined in %s' % (namespace, filename)
