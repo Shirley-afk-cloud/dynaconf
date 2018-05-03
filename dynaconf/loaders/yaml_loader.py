@@ -1,10 +1,11 @@
 # coding: utf-8
+from dynaconf.constants import YAML_EXTENSIONS
 try:
     import yaml
 except ImportError as e:  # pragma: no cover
     yaml = None
 
-from dotenv import find_dotenv
+from dynaconf.utils.files import find_file
 
 IDENTIFIER = 'yaml_loader'
 
@@ -42,7 +43,7 @@ def load(obj, namespace=None, silent=True, key=None, filename=None):
     # and can also be a single string 'aa:a'
     if not isinstance(filename, (list, tuple)):
         split_files = filename.split(',')
-        if all([f.endswith(('.yaml', '.yml')) for f in split_files]):
+        if all([f.endswith(YAML_EXTENSIONS) for f in split_files]):
             files = split_files  # it is a ['file.yml', ...]
         else:  # it is a single YAML string
             files = [filename]
@@ -50,10 +51,10 @@ def load(obj, namespace=None, silent=True, key=None, filename=None):
         files = filename
 
     for yaml_file in files:
-        if yaml_file.endswith(('.yaml', '.yml')):  # pragma: no cover
+        if yaml_file.endswith(YAML_EXTENSIONS):  # pragma: no cover
             try:
                 yaml_data = yaml.load(
-                    open(find_dotenv(yaml_file, usecwd=True))
+                    open(find_file(yaml_file, usecwd=True))
                 )
             except IOError as e:
                 obj.logger.warning(
