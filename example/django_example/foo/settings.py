@@ -16,3 +16,12 @@ STATIC_URL = '/etc/foo'
 import dynaconf  # noqa
 settings = dynaconf.DjangoDynaconf(__name__)  # noqa
 # HERE ENDS DYNACONF EXTENSION LOAD (No more code below this line)
+
+
+# test
+assert settings.SERVER == 'prodserver.com'
+assert settings.STATIC_URL == '/changed/in/settings.toml/by/dynaconf/'
+assert settings.USERNAME == 'admin_user_from_env'
+assert settings.PASSWORD == 'My5up3r53c4et'
+assert settings.get('PASSWORD') == 'My5up3r53c4et'
+assert settings.FOO == 'It overrides every other env'
